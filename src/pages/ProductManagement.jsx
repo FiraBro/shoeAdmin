@@ -25,11 +25,12 @@ const ProductManagement = () => {
       },
     ],
   });
-  console.log(products)
+  console.log(products);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const BASE_API_URL = "http://localhost:3000/api/v3";
+  const BASE_API_URL =
+    import.meta.env.VITE_BASE_URL || "http://localhost:3000/api/v3";
 
   // Fetch all products
   useEffect(() => {
