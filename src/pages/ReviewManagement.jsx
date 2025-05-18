@@ -23,6 +23,7 @@ const TestimonialManagement = () => {
   };
 
   const deleteTestimonial = async (id) => {
+    console.log(id)
     if (!window.confirm("Are you sure you want to delete this testimonial?"))
       return;
 
