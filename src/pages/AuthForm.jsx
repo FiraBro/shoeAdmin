@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "./AuthForm.module.css";
-import { loginUser, registerUser } from "../utility/api"; // 👈 import API
+import { loginUser, registerUser } from "../utility/formApi"; // 👈 import API
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
