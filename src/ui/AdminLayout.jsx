@@ -1,14 +1,20 @@
 import React from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import styles from "../ui/AdminLayout.module.css";
 import { FaBars, FaTimes } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // Remove auth token
+    navigate("/admin/login"); // Redirect to login page
   };
 
   return (
@@ -31,7 +37,7 @@ const AdminLayout = () => {
           <ul className={styles.navList}>
             <li>
               <Link
-                to="/admin/products"
+                to="/products"
                 className={`${styles.navLink} ${
                   pathname === "/admin/products" ? styles.active : ""
                 }`}
@@ -42,7 +48,7 @@ const AdminLayout = () => {
             </li>
             <li>
               <Link
-                to="/admin/reviews"
+                to="/reviews"
                 className={`${styles.navLink} ${
                   pathname === "/admin/reviews" ? styles.active : ""
                 }`}
@@ -51,9 +57,16 @@ const AdminLayout = () => {
                 Review Management
               </Link>
             </li>
+            <li>
+              {/* Logout is a button since it performs an action */}
+              <button onClick={handleLogout} className={styles.logoutButton}>
+                Logout
+              </button>
+            </li>
           </ul>
         </nav>
       </aside>
+
       <main className={styles.mainContent}>
         <Outlet />
       </main>
