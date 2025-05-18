@@ -1,28 +1,43 @@
 import React from "react";
-import ProductManagement from "./pages/ProductManagement";
-import TestimonialManagement from "./pages/ReviewManagement";
 import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
 } from "react-router-dom";
 import AdminLayout from "./ui/AdminLayout";
+import ProductManagement from "./pages/ProductManagement";
+import TestimonialManagement from "./pages/ReviewManagement";
+import AuthForm from "./pages/AuthForm";
+import PrivateRoute from "./components/PrivateRoute";
 
 const router = createBrowserRouter([
   {
-    element: <AdminLayout />,
+    path: "/",
+    element: <Navigate to="/admin/login" replace />,
+  },
+  {
+    path: "/admin/login",
+    element: <AuthForm />,
+  },
+  {
+    element: <PrivateRoute />, // Auth guard here
     children: [
       {
-        path: "/",
-        element: <Navigate to="/admin/products" replace />,
-      },
-      {
-        path: "/admin/products",
-        element: <ProductManagement />,
-      },
-      {
-        path: "/admin/reviews",
-        element: <TestimonialManagement />,
+        element: <AdminLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/products" replace />,
+          },
+          {
+            path: "/products", // Relative path
+            element: <ProductManagement />,
+          },
+          {
+            path: "/reviews", // Relative path
+            element: <TestimonialManagement />,
+          },
+        ],
       },
     ],
   },
