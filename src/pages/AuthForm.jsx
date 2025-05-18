@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "./AuthForm.module.css";
+import { loginUser, registerUser } from "../utility/api"; // 👈 import API
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -51,30 +52,18 @@ const AuthForm = () => {
 
     setIsLoading(true);
     try {
-      const endpoint = isLogin
-        ? "http://localhost:3000/api/v3/user/login"
-        : "http://localhost:3000/api/v3/user/register";
-      const body = isLogin
-        ? { email: formData.email, password: formData.password }
-        : {
+      const data = isLogin
+        ? await loginUser({
+            email: formData.email,
+            password: formData.password,
+          })
+        : await registerUser({
             name: formData.name,
             email: formData.email,
             password: formData.password,
-          };
+          });
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      console.log(res)
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Authentication failed");
-
-      // Save token to localStorage
       localStorage.setItem("token", data.token);
-
       navigate("/");
     } catch (error) {
       setErrors({
