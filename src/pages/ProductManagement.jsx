@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
 import styles from "./ProductManagement.module.css";
+import {
+  fetchProducts,
+  createProduct,
+  deleteProduct,
+} from "../utility/productApi";
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -25,31 +30,23 @@ const ProductManagement = () => {
       },
     ],
   });
-  console.log(products);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const BASE_API_URL =
-    import.meta.env.VITE_BASE_URL || "http://localhost:3000/api/v3";
-
   // Fetch all products
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${BASE_API_URL}/product`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch products");
-        }
-        const data = await response.json();
-        setProducts(data.data.product);
+        const productsData = await fetchProducts();
+        setProducts(productsData);
       } catch (err) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchProducts();
+    loadProducts();
   }, []);
 
   // Handle input changes
@@ -132,62 +129,39 @@ const ProductManagement = () => {
     setError(null);
     setSuccess(null);
 
-    const formData = new FormData();
-    formData.append("name", newProduct.name);
-    formData.append("description", newProduct.description);
-    formData.append("basePrice", newProduct.basePrice);
-    formData.append("category", newProduct.category);
-
-    newProduct.variants.forEach((variant, index) => {
-      formData.append(`variant${index}_color`, variant.color);
-      formData.append(`variant${index}_stock`, variant.stock);
-      formData.append(`variant${index}_price`, variant.price);
-      if (variant.images.front)
-        formData.append(`variant${index}_front`, variant.images.front);
-      if (variant.images.side)
-        formData.append(`variant${index}_side`, variant.images.side);
-      if (variant.images.back)
-        formData.append(`variant${index}_back`, variant.images.back);
-    });
-
     try {
-      const response = await fetch(`${BASE_API_URL}/product/create`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create product");
-      }
-
-      const result = await response.json();
+      const result = await createProduct(newProduct);
       setProducts((prev) => [...prev, result.product]);
       setShowAddForm(false);
       setSuccess("Product created successfully!");
-      setNewProduct({
-        name: "",
-        description: "",
-        basePrice: 0,
-        category: "",
-        variants: [
-          {
-            color: "",
-            stock: 0,
-            price: 0,
-            images: {
-              front: null,
-              side: null,
-              back: null,
-            },
-          },
-        ],
-      });
+      resetForm();
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Reset form to initial state
+  const resetForm = () => {
+    setNewProduct({
+      name: "",
+      description: "",
+      basePrice: 0,
+      category: "",
+      variants: [
+        {
+          color: "",
+          stock: 0,
+          price: 0,
+          images: {
+            front: null,
+            side: null,
+            back: null,
+          },
+        },
+      ],
+    });
   };
 
   // Delete product
@@ -196,14 +170,7 @@ const ProductManagement = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${BASE_API_URL}/product/${id}`, {
-          method: "DELETE",
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to delete product");
-        }
-
+        await deleteProduct(id);
         setProducts((prev) => prev.filter((product) => product._id !== id));
         setSuccess("Product deleted successfully!");
       } catch (err) {
@@ -636,7 +603,6 @@ const ProductManagement = () => {
                         <button
                           className={styles.editButton}
                           onClick={() => {
-                            // You would implement edit functionality here
                             alert("Edit functionality to be implemented");
                           }}
                         >
