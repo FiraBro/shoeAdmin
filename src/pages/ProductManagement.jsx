@@ -4,6 +4,7 @@ import {
   fetchProducts,
   createProduct,
   deleteProduct,
+  updateProduct,
 } from "../utility/productApi";
 
 const ProductManagement = () => {
@@ -12,6 +13,8 @@ const ProductManagement = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -22,18 +25,14 @@ const ProductManagement = () => {
         color: "",
         stock: 0,
         price: 0,
-        images: {
-          front: null,
-          side: null,
-          back: null,
-        },
+        images: { front: null, side: null, back: null },
       },
     ],
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  // Fetch all products
+  // Fetch products
   useEffect(() => {
     const loadProducts = async () => {
       setIsLoading(true);
@@ -49,16 +48,13 @@ const ProductManagement = () => {
     loadProducts();
   }, []);
 
-  // Handle input changes
+  // Handle input changes for add form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewProduct((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setNewProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle variant changes
+  // Handle variant changes for add form
   const handleVariantChange = (index, e) => {
     const { name, value } = e.target;
     const updatedVariants = [...newProduct.variants];
@@ -69,13 +65,10 @@ const ProductManagement = () => {
           ? Number(value)
           : value,
     };
-    setNewProduct((prev) => ({
-      ...prev,
-      variants: updatedVariants,
-    }));
+    setNewProduct((prev) => ({ ...prev, variants: updatedVariants }));
   };
 
-  // Handle image upload
+  // Handle image upload for add form
   const handleImageUpload = (variantIndex, angle, e) => {
     const file = e.target.files[0];
     const updatedVariants = [...newProduct.variants];
@@ -86,13 +79,51 @@ const ProductManagement = () => {
         [angle]: file,
       },
     };
-    setNewProduct((prev) => ({
-      ...prev,
-      variants: updatedVariants,
-    }));
+    setNewProduct((prev) => ({ ...prev, variants: updatedVariants }));
   };
 
-  // Add new variant
+  // Handle edit button click
+  const handleEdit = (product) => {
+    setEditingProduct(JSON.parse(JSON.stringify(product)));
+    setShowEditForm(true);
+    setShowAddForm(false);
+  };
+
+  // Handle edit form changes
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditingProduct((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle edit variant changes
+  const handleEditVariantChange = (index, e) => {
+    const { name, value } = e.target;
+    const updatedVariants = [...editingProduct.variants];
+    updatedVariants[index] = {
+      ...updatedVariants[index],
+      [name]:
+        name.includes("price") || name.includes("stock")
+          ? Number(value)
+          : value,
+    };
+    setEditingProduct((prev) => ({ ...prev, variants: updatedVariants }));
+  };
+
+  // Handle edit image upload
+  const handleEditImageUpload = (variantIndex, angle, e) => {
+    const file = e.target.files[0];
+    const updatedVariants = [...editingProduct.variants];
+    updatedVariants[variantIndex] = {
+      ...updatedVariants[variantIndex],
+      images: {
+        ...updatedVariants[variantIndex].images,
+        [angle]: file,
+      },
+    };
+    setEditingProduct((prev) => ({ ...prev, variants: updatedVariants }));
+  };
+
+  // Add new variant to add form
   const addVariant = () => {
     setNewProduct((prev) => ({
       ...prev,
@@ -102,24 +133,40 @@ const ProductManagement = () => {
           color: "",
           stock: 0,
           price: prev.basePrice || 0,
-          images: {
-            front: null,
-            side: null,
-            back: null,
-          },
+          images: { front: null, side: null, back: null },
         },
       ],
     }));
   };
 
-  // Remove variant
+  // Add new variant to edit form
+  const addEditVariant = () => {
+    setEditingProduct((prev) => ({
+      ...prev,
+      variants: [
+        ...prev.variants,
+        {
+          color: "",
+          stock: 0,
+          price: prev.basePrice || 0,
+          images: { front: null, side: null, back: null },
+        },
+      ],
+    }));
+  };
+
+  // Remove variant from add form
   const removeVariant = (index) => {
     const updatedVariants = [...newProduct.variants];
     updatedVariants.splice(index, 1);
-    setNewProduct((prev) => ({
-      ...prev,
-      variants: updatedVariants,
-    }));
+    setNewProduct((prev) => ({ ...prev, variants: updatedVariants }));
+  };
+
+  // Remove variant from edit form
+  const removeEditVariant = (index) => {
+    const updatedVariants = [...editingProduct.variants];
+    updatedVariants.splice(index, 1);
+    setEditingProduct((prev) => ({ ...prev, variants: updatedVariants }));
   };
 
   // Submit new product
@@ -142,26 +189,25 @@ const ProductManagement = () => {
     }
   };
 
-  // Reset form to initial state
-  const resetForm = () => {
-    setNewProduct({
-      name: "",
-      description: "",
-      basePrice: 0,
-      category: "",
-      variants: [
-        {
-          color: "",
-          stock: 0,
-          price: 0,
-          images: {
-            front: null,
-            side: null,
-            back: null,
-          },
-        },
-      ],
-    });
+  // Submit updated product
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const result = await updateProduct(editingProduct._id, editingProduct);
+      setProducts((prev) =>
+        prev.map((p) => (p._id === editingProduct._id ? result.product : p))
+      );
+      setShowEditForm(false);
+      setSuccess("Product updated successfully!");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Delete product
@@ -181,8 +227,27 @@ const ProductManagement = () => {
     }
   };
 
-  // Filter products by search term and category
+  // Reset add form
+  const resetForm = () => {
+    setNewProduct({
+      name: "",
+      description: "",
+      basePrice: 0,
+      category: "",
+      variants: [
+        {
+          color: "",
+          stock: 0,
+          price: 0,
+          images: { front: null, side: null, back: null },
+        },
+      ],
+    });
+  };
+
+  // Filter products
   const filteredProducts = products.filter((product) => {
+    console.log(product)
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -192,11 +257,21 @@ const ProductManagement = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Get unique categories for filter dropdown
+  // Get unique categories
   const categories = [
     "all",
     ...new Set(products.map((product) => product.category)),
   ];
+
+  // Display image or upload button
+  const renderImagePreview = (image, text) => {
+    if (image instanceof File) {
+      return <span className={styles.fileName}>{image.name}</span>;
+    } else if (typeof image === "string") {
+      return <img src={image} alt={text} className={styles.imagePreview} />;
+    }
+    return null;
+  };
 
   return (
     <div className={styles.adminContainer}>
@@ -229,6 +304,7 @@ const ProductManagement = () => {
             }`}
             onClick={() => {
               setShowAddForm(!showAddForm);
+              setShowEditForm(false);
               setError(null);
               setSuccess(null);
             }}
@@ -402,80 +478,32 @@ const ProductManagement = () => {
                   <div className={styles.imageUploadSection}>
                     <h5 className={styles.subSectionTitle}>Product Images</h5>
                     <div className={styles.imageUploadGrid}>
-                      <div className={styles.imageUpload}>
-                        <label className={styles.fileUploadLabel}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              handleImageUpload(index, "front", e)
-                            }
-                            className={styles.fileInput}
-                            required
-                          />
-                          <div className={styles.fileUploadButton}>
-                            <i className={`${styles.icon} fas fa-camera`}></i>
-                            {variant.images.front
-                              ? "Change Front Image"
-                              : "Upload Front Image"}
-                          </div>
-                          {variant.images.front && (
-                            <span className={styles.fileName}>
-                              {variant.images.front.name}
-                            </span>
-                          )}
-                        </label>
-                      </div>
-
-                      <div className={styles.imageUpload}>
-                        <label className={styles.fileUploadLabel}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              handleImageUpload(index, "side", e)
-                            }
-                            className={styles.fileInput}
-                            required
-                          />
-                          <div className={styles.fileUploadButton}>
-                            <i className={`${styles.icon} fas fa-camera`}></i>
-                            {variant.images.side
-                              ? "Change Side Image"
-                              : "Upload Side Image"}
-                          </div>
-                          {variant.images.side && (
-                            <span className={styles.fileName}>
-                              {variant.images.side.name}
-                            </span>
-                          )}
-                        </label>
-                      </div>
-
-                      <div className={styles.imageUpload}>
-                        <label className={styles.fileUploadLabel}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              handleImageUpload(index, "back", e)
-                            }
-                            className={styles.fileInput}
-                            required
-                          />
-                          <div className={styles.fileUploadButton}>
-                            <i className={`${styles.icon} fas fa-camera`}></i>
-                            {variant.images.back
-                              ? "Change Back Image"
-                              : "Upload Back Image"}
-                          </div>
-                          {variant.images.back && (
-                            <span className={styles.fileName}>
-                              {variant.images.back.name}
-                            </span>
-                          )}
-                        </label>
-                      </div>
+                      {["front", "side", "back"].map((angle) => (
+                        <div key={angle} className={styles.imageUpload}>
+                          <label className={styles.fileUploadLabel}>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                handleImageUpload(index, angle, e)
+                              }
+                              className={styles.fileInput}
+                              required={index === 0}
+                            />
+                            <div className={styles.fileUploadButton}>
+                              <i className={`${styles.icon} fas fa-camera`}></i>
+                              {variant.images[angle]
+                                ? `Change ${angle} Image`
+                                : `Upload ${angle} Image`}
+                            </div>
+                            {variant.images[angle] && (
+                              <span className={styles.fileName}>
+                                {variant.images[angle].name}
+                              </span>
+                            )}
+                          </label>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -495,10 +523,7 @@ const ProductManagement = () => {
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() => {
-                  setShowAddForm(false);
-                  setError(null);
-                }}
+                onClick={() => setShowAddForm(false)}
               >
                 Cancel
               </button>
@@ -524,12 +549,223 @@ const ProductManagement = () => {
         </div>
       )}
 
+      {showEditForm && editingProduct && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.formContainer}>
+            <form className={styles.productForm} onSubmit={handleUpdate}>
+              <h2 className={styles.formTitle}>
+                <i className={`${styles.icon} fas fa-edit`}></i> Edit Product
+              </h2>
+
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <i className={`${styles.icon} fas fa-tag`}></i> Product Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={editingProduct.name}
+                    onChange={handleEditChange}
+                    className={styles.formInput}
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <i className={`${styles.icon} fas fa-align-left`}></i>{" "}
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={editingProduct.description}
+                    onChange={handleEditChange}
+                    className={styles.formTextarea}
+                    required
+                    rows="3"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <i className={`${styles.icon} fas fa-dollar-sign`}></i> Base
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    name="basePrice"
+                    value={editingProduct.basePrice}
+                    onChange={handleEditChange}
+                    min="0"
+                    step="0.01"
+                    className={styles.formInput}
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <i className={`${styles.icon} fas fa-list`}></i> Category
+                  </label>
+                  <input
+                    type="text"
+                    name="category"
+                    value={editingProduct.category}
+                    onChange={handleEditChange}
+                    className={styles.formInput}
+                    required
+                    list="categories"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.variantsSection}>
+                <h3 className={styles.sectionTitle}>
+                  <i className={`${styles.icon} fas fa-palette`}></i> Product
+                  Variants
+                </h3>
+
+                {editingProduct.variants.map((variant, index) => (
+                  <div key={index} className={styles.variantCard}>
+                    <div className={styles.variantHeader}>
+                      <h4>Variant #{index + 1}</h4>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          className={styles.removeButton}
+                          onClick={() => removeEditVariant(index)}
+                        >
+                          <i className={`${styles.icon} fas fa-trash`}></i>{" "}
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <div className={styles.variantGrid}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Color</label>
+                        <input
+                          type="text"
+                          name="color"
+                          value={variant.color}
+                          onChange={(e) => handleEditVariantChange(index, e)}
+                          className={styles.formInput}
+                          required
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Price</label>
+                        <input
+                          type="number"
+                          name="price"
+                          value={variant.price}
+                          onChange={(e) => handleEditVariantChange(index, e)}
+                          min="0"
+                          step="0.01"
+                          className={styles.formInput}
+                          required
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Stock</label>
+                        <input
+                          type="number"
+                          name="stock"
+                          value={variant.stock}
+                          onChange={(e) => handleEditVariantChange(index, e)}
+                          min="0"
+                          className={styles.formInput}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.imageUploadSection}>
+                      <h5 className={styles.subSectionTitle}>Product Images</h5>
+                      <div className={styles.imageUploadGrid}>
+                        {["front", "side", "back"].map((angle) => (
+                          <div key={angle} className={styles.imageUpload}>
+                            <label className={styles.fileUploadLabel}>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                  handleEditImageUpload(index, angle, e)
+                                }
+                                className={styles.fileInput}
+                              />
+                              <div className={styles.fileUploadButton}>
+                                <i
+                                  className={`${styles.icon} fas fa-camera`}
+                                ></i>
+                                {variant.images[angle]
+                                  ? `Change ${angle} Image`
+                                  : `Upload ${angle} Image`}
+                              </div>
+                              {renderImagePreview(
+                                variant.images[angle],
+                                `${angle} view`
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className={styles.addVariantButton}
+                  onClick={addEditVariant}
+                >
+                  <i className={`${styles.icon} fas fa-plus-circle`}></i> Add
+                  Another Variant
+                </button>
+              </div>
+
+              <div className={styles.formActions}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setShowEditForm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.primaryButton}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <i
+                        className={`${styles.icon} fas fa-spinner fa-spin`}
+                      ></i>{" "}
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <i className={`${styles.icon} fas fa-save`}></i> Update
+                      Product
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className={styles.productsSection}>
         <h2 className={styles.sectionTitle}>
           <i className={`${styles.icon} fas fa-boxes`}></i> Product Inventory
         </h2>
 
-        {isLoading && !showAddForm ? (
+        {isLoading && !showAddForm && !showEditForm ? (
           <div className={styles.loading}>
             <i className={`${styles.icon} fas fa-spinner fa-spin`}></i> Loading
             products...
@@ -602,9 +838,7 @@ const ProductManagement = () => {
                       <div className={styles.actionsCell}>
                         <button
                           className={styles.editButton}
-                          onClick={() => {
-                            alert("Edit functionality to be implemented");
-                          }}
+                          onClick={() => handleEdit(product)}
                         >
                           <i className={`${styles.icon} fas fa-edit`}></i>
                         </button>
