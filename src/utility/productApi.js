@@ -70,3 +70,45 @@ export const deleteProduct = async (id) => {
 
   return id; // Return the deleted product ID
 };
+
+export const updateProduct = async (id, data) => {
+  try {
+    const formData = new FormData();
+
+    // Append basic fields
+    if (data.name) formData.append("name", data.name);
+    if (data.description) formData.append("description", data.description);
+    if (data.basePrice) formData.append("basePrice", data.basePrice);
+    if (data.category) formData.append("category", data.category);
+
+    // Append variant data
+    data.variants.forEach((variant, index) => {
+      formData.append(`variant${index}_color`, variant.color);
+      formData.append(`variant${index}_stock`, variant.stock);
+      formData.append(`variant${index}_price`, variant.price);
+
+      formData.append(`variant${index}_front`, variant.images.front);
+      formData.append(`variant${index}_side`, variant.images.side);
+      formData.append(`variant${index}_back`, variant.images.back);
+    });
+
+    const response = await fetch(`${BASE_API_URL}/product/${id}`, {
+      method: "PUT",
+      headers: {
+        ...getHeaders(), // 👈 Spread headers properly
+        // Do NOT include Content-Type when sending FormData
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to update product");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Update Product API Error:", error);
+    throw error;
+  }
+};
